@@ -1,9 +1,44 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
+import hashlib
+
+seen_hashes = {}
+
+def get_visible_text(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for tag in soup(["script", "style", "nonscript"]):
+        tag.decompose()
+    text = soup.get_text(" ")
+    return re.sub(r"\s+", " ", text).lower()
+
+def is_duplicate_page(text):
+    hash = hashlib.md5(text.encode()).hexdigest()
+    if hash in seen_hashes:
+        return True
+    return False
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
+
+    if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
+        return []
+
+    html = resp.raw_response.content
+
+    if len(html) > 2_000_000:
+        return []
+
+    text = get_visible_text(html)
+
+    if is_duplicate_page(text):
+        return []
+
+    if len(text.split()) < 50:
+        return []
+
+    # can add word count stuff here using tokenizer
+
     return [link for link in links if is_valid(link)]
 
 import re
@@ -69,7 +104,7 @@ def is_valid(url):
 
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
             return False
-        if "calendar" in parsed.path or "events" in parsed.path:
+        if "calendar" in parsed.path or "events" in parsed.path or "/event/" in parsed.path:
             if re.search(r"\d{4}[-/]\d{2}", parsed.path):
                 return False
             if "tag" in parsed.path or "page" in parsed.path:
@@ -104,7 +139,7 @@ def is_valid(url):
             return False
 
         # calendar loops
-        if re.search(r"(/[^/]+)\1{2,}", parsed.path):
+        if re.search(r"(\/[^\/]+){10,}", parsed.path):
             return False
 
         # query explosion
@@ -116,3 +151,4 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
