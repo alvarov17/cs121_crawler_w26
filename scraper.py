@@ -2,8 +2,34 @@ import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 import hashlib
+from collections import Counter
+# import tokenizer here
 
-seen_hashes = {}
+seen_hashes = set()
+word_counts = {}
+unique_urls = set()
+top_50_counter = Counter()
+subdomain_count = {}
+
+stopwords = set("""
+this is and to in for a on with as by an at from or be that this is it are was
+but not which have has they their its you we he she them his her them
+""".split())
+
+def add_subdomain(url):
+    parsed = urlparse(url)
+    loc = parsed.netloc.lower()
+    if loc.endswith("uci.edu"):
+        subdomain_count[loc] = subdomain_count.get(loc, 0) + 1
+
+def add_word_count(text):
+    words =  [w for w in text.split() if w not in stopwords]
+    top_50_counter.update(words)
+	#top_50_counter.update
+
+def add_unique_urls(url):
+    url, _ = urldefrag(url)
+    unique_urls.add(url)
 
 def get_visible_text(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -36,6 +62,14 @@ def scraper(url, resp):
 
     if len(text.split()) < 50:
         return []
+
+    wc = len(text.split())
+    word_counts[url] = wc
+    add_word_count(text)
+
+    url_no_frag, _ = urldefrag(url)
+    unique_urls.add(url_no_frag)
+    add_subdomain(url_no_frag)
 
     # can add word count stuff here using tokenizer
 
@@ -104,7 +138,7 @@ def is_valid(url):
 
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
             return False
-        if "calendar" in parsed.path or "events" in parsed.path or "/event/" in parsed.path:
+        if "calendar" in parsed.path or "events" in parsed.path or "/event/" in parsed.path or "grape.ics" in parsed.path:
             if re.search(r"\d{4}[-/]\d{2}", parsed.path):
                 return False
             if "tag" in parsed.path or "page" in parsed.path:
