@@ -66,7 +66,15 @@ def is_valid(url):
             ".informatics.uci.edu",
             ".stat.uci.edu"
         )
+
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
+            return False
+        if "calendar" in parsed.path or "events" in parsed.path:
+            if re.search(r"\d{4}[-/]\d{2}", parsed.path):
+                return False
+            if "tag" in parsed.path or "page" in parsed.path:
+                return False
+        if "ical=" in url:
             return False
 
         # Filter file types (given regex)
@@ -81,6 +89,13 @@ def is_valid(url):
             r"|rm|smil|wmv|swf|wma|zip|rar|gz)$",
             parsed.path.lower()
         ):
+            return False
+        
+        if "doku.php" in parsed.path:
+            return False
+        if parsed.query.count("=") > 2:
+            return False
+        if "?" in parsed.path and parsed.query.count("=") > 2:
             return False
 
         # spider trap prevention
