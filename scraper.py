@@ -75,9 +75,6 @@ def scraper(url, resp):
 
     return [link for link in links if is_valid(link)]
 
-import re
-from urllib.parse import urlparse
-
 def extract_next_links(url, resp):
     """
     Returns a list of absolute URLs found on the page.
@@ -136,6 +133,18 @@ def is_valid(url):
             ".stat.uci.edu"
         )
 
+        blocked_subdomains = (
+		    "grape.ics.uci.edu",
+            "calendar.ics.uci.edu",
+            "intranet.ics.uci.edu"
+        )
+
+        if parsed.netloc in blocked_subdomains:
+            return False
+
+        if parsed.netloc.startwith("grape"):
+            return False
+
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
             return False
         if "calendar" in parsed.path or "events" in parsed.path or "/event/" in parsed.path or "grape.ics" in parsed.path:
@@ -150,7 +159,7 @@ def is_valid(url):
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             r"|png|tiff?|mid|mp2|mp3|mp4"
-            r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+            r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|mpg"
             r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             r"|epub|dll|cnf|tgz|sha1"
@@ -185,4 +194,21 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def write_report(filename = "crawler_report.txt"):
+    with open(filename, "w") as f:
+        f.write(f"Unique pages: {len(unique_urls)}\n\n")
+
+        longest = max(word_counts, key = word_count.get)
+        f.write(f"Longest page: \n{longest}\nWord count: {word_counts[longest]}\n\n"
+
+        f.write("Top 50 words:\n")
+        for word, count in top_50_counter.most_common(50):
+            f.write(f"{word}, {count}\n")
+        f.write("\n")
+
+        f.write("Subdomains:\n")
+        for subdomain in sorted(subdomain_count):
+            f.write(f"{subdomain}, {subdomain_counts[subdomain]}\n")
+    print(f"Report written to {filename}")
 
