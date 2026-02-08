@@ -13,7 +13,7 @@ def main(config_file, restart):
     config.cache_server = get_cache_server(config, restart)
     crawler = Crawler(config, restart)
     crawler.start()
-	crawler.write_report()
+    crawler.write_report()
 
 
 if __name__ == "__main__":
