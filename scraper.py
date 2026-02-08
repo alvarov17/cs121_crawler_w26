@@ -21,8 +21,8 @@ very s t can will just don should now
 
 def is_number(string):
     try:
-	    float(string)
-		return True
+        float(string)
+        return True
     except ValueError:
         return False
 
@@ -33,10 +33,9 @@ def add_subdomain(url):
         subdomain_count[loc] = subdomain_count.get(loc, 0) + 1
 
 def add_word_count(text):
-	text = re.findall(r"[a-z0-9]+"), text.lower())
-    words =  [w for w in text if w not in stopwords and not is_number(w)]
+	text = re.findall(r"[a-z0-9]+", text.lower())
+    words = [w for w in text if w not in stopwords and not is_number(w)]
     top_50_counter.update(words)
-	#top_50_counter.update
 
 def add_unique_urls(url):
     url, _ = urldefrag(url)
@@ -44,7 +43,7 @@ def add_unique_urls(url):
 
 def get_visible_text(html):
     soup = BeautifulSoup(html, 'html.parser')
-    for tag in soup(["script", "style", "nonscript"]):
+    for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
     text = soup.get_text(" ")
     return re.sub(r"\s+", " ", text).lower()
@@ -53,6 +52,7 @@ def is_duplicate_page(text):
     hash = hashlib.md5(text.encode()).hexdigest()
     if hash in seen_hashes:
         return True
+	seen_hashes.add(h)
     return False
 
 def scraper(url, resp):
@@ -147,7 +147,7 @@ def is_valid(url):
         blocked_subdomains = (
 		    "grape.ics.uci.edu",
             "calendar.ics.uci.edu",
-            "intranet.ics.uci.edu"
+            "intranet.ics.uci.edu",
             "login.uci.edu",
             "auth.uci.edu",
             "mail.ics.uci.edu",
@@ -160,7 +160,7 @@ def is_valid(url):
         if parsed.netloc in blocked_subdomains:
             return False
 
-        if parsed.netloc.startswith("grape"):
+        if parsed.netloc.startswith("grape."):
             return False
 
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
