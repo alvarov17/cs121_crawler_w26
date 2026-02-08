@@ -137,6 +137,10 @@ def is_valid(url):
 		    "grape.ics.uci.edu",
             "calendar.ics.uci.edu",
             "intranet.ics.uci.edu"
+            "login.uci.edu",
+            "auth.uci.edu",
+            "mail.ics.uci.edu",
+            "webmail.uci.edu"
         )
 
         if re.search(r"/~[^/]+/", parsed.path):
