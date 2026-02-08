@@ -202,7 +202,7 @@ def write_report(filename = "crawler_report.txt"):
     with open(filename, "w") as f:
         f.write(f"Unique pages: {len(unique_urls)}\n\n")
 
-        longest = max(word_counts, key = word_count.get)
+        longest = max(word_counts, key = word_counts.get)
         f.write(f"Longest page: \n{longest}\nWord count: {word_counts[longest]}\n\n")
 
         f.write("Top 50 words:\n")
