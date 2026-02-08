@@ -33,7 +33,7 @@ def add_subdomain(url):
         subdomain_count[loc] = subdomain_count.get(loc, 0) + 1
 
 def add_word_count(text):
-	text = re.findall(r"[a-z0-9]+", text.lower())
+    text = re.findall(r"[a-z0-9]+", text.lower())
     words = [w for w in text if w not in stopwords and not is_number(w)]
     top_50_counter.update(words)
 
@@ -52,7 +52,7 @@ def is_duplicate_page(text):
     hash = hashlib.md5(text.encode()).hexdigest()
     if hash in seen_hashes:
         return True
-	seen_hashes.add(h)
+    seen_hashes.add(h)
     return False
 
 def scraper(url, resp):
