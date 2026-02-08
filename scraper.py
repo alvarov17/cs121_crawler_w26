@@ -139,6 +139,9 @@ def is_valid(url):
             "intranet.ics.uci.edu"
         )
 
+        if re.search(r"/~[^/]+/", parsed.path):
+            return False
+
         if parsed.netloc in blocked_subdomains:
             return False
 
