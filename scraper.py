@@ -212,6 +212,6 @@ def write_report(filename = "crawler_report.txt"):
 
         f.write("Subdomains:\n")
         for subdomain in sorted(subdomain_count):
-            f.write(f"{subdomain}, {subdomain_counts[subdomain]}\n")
+            f.write(f"{subdomain}, {subdomain_count[subdomain]}\n")
     print(f"Report written to {filename}")
 
