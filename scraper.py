@@ -215,3 +215,4 @@ def write_report(filename = "crawler_report.txt"):
             f.write(f"{subdomain}, {subdomain_count[subdomain]}\n")
     print(f"Report written to {filename}")
 
+
