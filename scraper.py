@@ -142,7 +142,7 @@ def is_valid(url):
         if parsed.netloc in blocked_subdomains:
             return False
 
-        if parsed.netloc.startwith("grape"):
+        if parsed.netloc.startswith("grape"):
             return False
 
         if not any(parsed.netloc.endswith(d) for d in allowed_domains):
