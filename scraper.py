@@ -19,6 +19,13 @@ why how all any both each few more most other some such no not nor only own same
 very s t can will just don should now
 """.split())
 
+def is_number(string):
+    try:
+	    float(string)
+		return True
+    except ValueError:
+        return False
+
 def add_subdomain(url):
     parsed = urlparse(url)
     loc = parsed.netloc.lower()
@@ -26,7 +33,8 @@ def add_subdomain(url):
         subdomain_count[loc] = subdomain_count.get(loc, 0) + 1
 
 def add_word_count(text):
-    words =  [w for w in text.split() if w not in stopwords]
+	text = re.findall(r"[a-z0-9]+"), text.lower())
+    words =  [w for w in text if w not in stopwords and not is_number(w)]
     top_50_counter.update(words)
 	#top_50_counter.update
 
