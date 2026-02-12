@@ -52,7 +52,7 @@ def is_duplicate_page(text):
     hash = hashlib.md5(text.encode()).hexdigest()
     if hash in seen_hashes:
         return True
-    seen_hashes.add(h)
+    seen_hashes.add(hash)
     return False
 
 def scraper(url, resp):
@@ -151,7 +151,9 @@ def is_valid(url):
             "login.uci.edu",
             "auth.uci.edu",
             "mail.ics.uci.edu",
-            "webmail.uci.edu"
+            "webmail.uci.edu",
+            "bugs.ics.uci.edu",
+            "jira.ics.uci.edu"
         )
 
         if re.search(r"/~[^/]+/", parsed.path):
