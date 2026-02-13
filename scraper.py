@@ -56,10 +56,11 @@ def is_duplicate_page(text):
     return False
 
 def scraper(url, resp):
-    links = extract_next_links(url, resp)
 
     if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
         return []
+
+    links = extract_next_links(url, resp)
 
     html = resp.raw_response.content
 
@@ -119,7 +120,8 @@ def extract_next_links(url, resp):
 
             links.append(abs_url)
 
-    except Exception:
+    except Exception as e:
+        print(f"Error with {url}: {e}")
         return []
 
     return links
@@ -218,8 +220,8 @@ def is_valid(url):
 def write_report(filename = "crawler_report.txt"):
     with open(filename, "w") as f:
         f.write(f"Unique pages: {len(unique_urls)}\n\n")
-
-        longest = max(word_counts, key = word_counts.get)
+        if word_counts:
+            longest = max(word_counts, key = word_counts.get)
         f.write(f"Longest page: \n{longest}\nWord count: {word_counts[longest]}\n\n")
 
         f.write("Top 50 words:\n")
