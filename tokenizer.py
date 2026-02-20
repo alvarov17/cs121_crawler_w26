@@ -68,8 +68,8 @@ def tokenize(content: list[str]) -> list[Token] | None:
                 current.append(ch.lower())
             else:
                 if current:
-                    word = ''.join(current)
-                    if word is not in stopwords and word not is_number(word):
+                    word = ''.join(current).lower()
+                    if word not in stopwords and not is_number(word):
                         tokens.append(Token(word))
                     current = []
                     
