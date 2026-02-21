@@ -8,7 +8,7 @@ import tokenizer
 import hashlib
 import json
 import os
-from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning, MarkupResemblesLocatorWarning
 import warnings
 import re
 import pickle
@@ -69,14 +69,10 @@ def build_index(documents: list[str]):
     Index = {}
     n = 0
     file_num = 1
-    
-    # RAM FIX #1: Lowered chunk size from 1000 to 200
+
     for chunk in chunk_generator(documents, 200):
         for doc in chunk:
             try:
-                # if os.path.getsize(doc) > 3 * 1024 * 1024:  # 3 MB limit
-                #     print(f"Skipping {doc} - file too large (possible trap/junk)")
-                #     continue
                 with open(doc, 'r') as d:
                     doc_content = json.load(d)
                 n += 1
@@ -94,18 +90,14 @@ def build_index(documents: list[str]):
                 
                 for token_lower, freq in frequency.items():
                     if len(token_lower) > 200: 
-                        continue
-                    
-                    # RAM FIX #2: Store highly-compressed integers, not heavy strings!
-                    unique_tokens.add(hash(token_lower))
-                    
+                        continue           
+                    # hash the word to save on ram
+                    unique_tokens.add(hash(token_lower))          
                     if token_lower not in Index:
                         Index[token_lower] = [] 
-                        
-                    # Put the Posting class back in!
                     Index[token_lower].append(Posting(n, freq))
                     
-                # RAM FIX #3: Actively delete the heavy text strings from local memory
+                # delete to save ram again
                 del html
                 del text
                 del tokens
@@ -121,23 +113,23 @@ def build_index(documents: list[str]):
             Index.clear() 
             
         gc.collect() 
-        
-    # print(f"Total pages indexed: {len(seen_hashes)}") 
+
 
 def write_report(filename="indexer_report.txt"):
     with open(filename, "w") as f:
         f.write(f"Indexed documents: {len(seen_hashes)}\n\n")
         f.write(f"Number of unique tokens: \n{len(unique_tokens)}\n\n")
         f.write("Total size of index in KB:\n")
-        total_size = 0
+        total_size = os.path.getsize("master_index.txt") / 1024
         for name, size in file_names_sizes.items():
             f.write(f"{name}: {(size):.2f} KB\n")
             total_size += size
-        f.write(f"\n Total : {(total_size):.2f} KB")
+        f.write(f"\n Master Index Total : {(total_size):.2f} KB")
     print(f"Report written to {filename}")
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+    warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
     paths = collect_paths("/home/alvarov2/crawler_w26/DEV")
     build_index(paths)
     convert_pickles_to_sorted_text()

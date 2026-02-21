@@ -9,6 +9,7 @@ __pycache__/
 /DEV/
 /index_text/
 /index_pickle/
+/crawl_logs/
 
 # Distribution / packaging
 .Python
