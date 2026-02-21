@@ -69,7 +69,8 @@ def write_to_file(Index: dict, file_num: int):
 		os.makedirs(folder_name)
 	with open(full_path, 'wb') as f:
 		pickle.dump(Index, f)
-	file_names_sizes[file_name] = os.path.getsize(file_name)
+	file_names_sizes[file_name] = os.path.getsize(full_path)
+	#Need to check the full path instead of assuming we're running the script from inside folder_name
 
 def build_index(documents: list[str]): # documents are json files
 	"""
