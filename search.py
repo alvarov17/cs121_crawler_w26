@@ -2,7 +2,7 @@ import json
 import os
 
 INDEX_FILE = "master_index.txt" # merge.py output file
-RESULTS_TO_PRINT = 10 # to not print every result
+RESULTS_TO_PRINT = 5 # to not print every result
 
 class Searcher:
     def __init__(self, index_path):
