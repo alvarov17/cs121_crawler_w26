@@ -33,7 +33,7 @@ def convert_pickles_to_sorted_text():
             for term in sorted(partial_index.keys()):
                 # convert the custom Posting objects into a simple list of [docid, freq]
                 # so json.dumps() can actually write it to a text file.
-                postings_list = [[p.docid, p.tfidf] for p in partial_index[term]]
+                postings_list = [[p.docid, p.tfidf, p.url] for p in partial_index[term]]
                 
                 postings_str = json.dumps(postings_list)
                 f.write(f"{term}\t{postings_str}\n")

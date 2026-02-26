@@ -1,5 +1,6 @@
 import json
 import os
+from nltk.stem import PorterStemmer
 
 INDEX_FILE = "master_index.txt" # merge.py output file
 RESULTS_TO_PRINT = 5 # to not print every result
@@ -8,6 +9,9 @@ class Searcher:
     def __init__(self, index_path):
         self.index_path = index_path
         self.term_offsets = {}
+
+        self.ps = PorterStemmer()
+
         self.index_file = open(self.index_path, 'r', encoding='utf-8')
         self._build_seek_index()
 
@@ -65,9 +69,11 @@ class Searcher:
         if not terms:
             return []
 
+        stemmed_terms = [self.ps.stem(term) for term in terms]
+
         all_postings = []
 
-        for term in terms:
+        for term in stemmed_terms:
             posting = self.get_postings(term)
             if not posting:
                 return []
@@ -102,6 +108,6 @@ if __name__ == "__main__":
         else:
             print(f"Found in {len(results)} documents")
             for doc in results[:RESULTS_TO_PRINT]:
-                print(f"DocID: {doc[0]} // Score {doc[1]}")
+                print(f"DocID: {doc[0]} // Score {doc[1]} // URL: {doc[2]}")
 
 

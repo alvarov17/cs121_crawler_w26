@@ -12,7 +12,8 @@ from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning, MarkupResemblesLocatorWar
 import warnings
 import re
 import pickle
-import gc  
+import gc
+from nltk.stem import PorterStemmer
 
 MAX_INDEX = 50000 
 
@@ -69,7 +70,7 @@ def build_index(documents: list[str]):
     Index = {}
     n = 0
     file_num = 1
-
+    stemmer = PorterStemmer()
     for chunk in chunk_generator(documents, 200):
         for doc in chunk:
             try:
@@ -77,16 +78,18 @@ def build_index(documents: list[str]):
                     doc_content = json.load(d)
                 n += 1
                 
-                html = doc_content.get("content", "") 
+                html = doc_content.get("content", "")
+                
                 if not html:
                     continue
                     
                 text = get_visible_text(html)
                 if is_duplicate_page(text) or near_duplicate(text):
                     continue
-                    
+                url = doc_content.get("url", "")     
                 tokens = tokenizer.tokenize(text)
-                frequency = tokenizer.compute_word_frequencies(tokens)
+                stemmed_tokens = [stemmer.stem(token) for token in tokens]
+                frequency = tokenizer.compute_word_frequencies(stemmed_tokens)
                 
                 for token_lower, freq in frequency.items():
                     if len(token_lower) > 200: 
@@ -95,12 +98,14 @@ def build_index(documents: list[str]):
                     unique_tokens.add(hash(token_lower))          
                     if token_lower not in Index:
                         Index[token_lower] = [] 
-                    Index[token_lower].append(Posting(n, freq))
+                    Index[token_lower].append(Posting(n, freq, url)) # added url attribute
                     
                 # delete to save ram again
                 del html
+                del url
                 del text
                 del tokens
+                del stemmed_tokens
                 
             except json.JSONDecodeError:
                 print(f"JSON file could not be read: {doc}")
@@ -134,4 +139,4 @@ if __name__ == "__main__":
     build_index(paths)
     convert_pickles_to_sorted_text()
     merge_sorted_text_files()
-    write_report()
+    # write_report()
