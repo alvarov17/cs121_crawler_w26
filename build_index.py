@@ -1,6 +1,7 @@
 """
     Build Index and Postings
 """
+import math
 
 from posting import Posting
 from merge import convert_pickles_to_sorted_text, merge_sorted_text_files
@@ -97,8 +98,9 @@ def build_index(documents: list[str]):
                     # hash the word to save on ram
                     unique_tokens.add(hash(token_lower))          
                     if token_lower not in Index:
-                        Index[token_lower] = [] 
-                    Index[token_lower].append(Posting(n, freq, url)) # added url attribute
+                        Index[token_lower] = []
+                    log_tf = 1 + math.log10(freq) # M3: store weight instead of frequency
+                    Index[token_lower].append(Posting(n, log_tf, url)) # added url attribute
                     
                 # delete to save ram again
                 del html

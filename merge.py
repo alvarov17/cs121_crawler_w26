@@ -43,7 +43,7 @@ def convert_pickles_to_sorted_text():
         # immediately clear memory JIC
         del partial_index
 
-def merge_sorted_text_files(output_file="master_index.txt"):
+def merge_sorted_text_files(output_file="master_index.txt", metadata_file="metadata.json"):
     """
     Step 2: Uses a priority queue to merge all text files 
     line-by-line without loading them entirely into memory.
@@ -51,11 +51,14 @@ def merge_sorted_text_files(output_file="master_index.txt"):
     print("\nStep 2: Starting Merge...")
     # gathers all .txt files
     txt_files = [os.path.join(TEXT_DIR, f) for f in os.listdir(TEXT_DIR) if f.endswith('.txt')]
-    
+
+    term_offsets = {}       #M3 offset map
+    unique_doc_ids = set()  #M3
+
     with ExitStack() as stack:
         # open all files
         files = [stack.enter_context(open(f, 'r', encoding='utf-8')) for f in txt_files]
-        
+
         heap = []
         for i, f in enumerate(files):
             line = f.readline()
@@ -78,9 +81,14 @@ def merge_sorted_text_files(output_file="master_index.txt"):
                     # new word found, writes the previous word's data to disk
                     if current_term is not None:
                         # sort by doc id
+                        term_offsets[current_term] = out_f.tell()
+
                         current_postings.sort(key=lambda x: x[0]) 
                         merged_str = json.dumps(current_postings)
                         out_f.write(f"{current_term}\t{merged_str}\n")
+
+                        for p in current_postings:
+                            unique_doc_ids.add(p[0])
                         
                     current_term = term
                     current_postings = postings
@@ -94,11 +102,18 @@ def merge_sorted_text_files(output_file="master_index.txt"):
             
             # writes final word
             if current_term is not None:
-                current_postings.sort(key=lambda x: x[0])
+                term_offsets[current_term] = out_f.tell()
                 merged_str = json.dumps(current_postings)
                 out_f.write(f"{current_term}\t{merged_str}\n")
 
-    print(f"\nMerge complete! Final master index saved to {output_file}")
+    metadata = {
+        "N": len(unique_doc_ids),
+        "offsets": term_offsets
+    }
+    with open(metadata_file, 'wb') as f:
+        pickle.dump(metadata,f)
+
+    print(f"\nIndex complete! Indexed {len(unique_doc_ids)} documents.")
 
 if __name__ == "__main__":
     convert_pickles_to_sorted_text()

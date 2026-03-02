@@ -1,39 +1,28 @@
 import json
+import math
 import os
+import pickle
+
 from nltk.stem import PorterStemmer
+import tokenizer
 
 INDEX_FILE = "master_index.txt" # merge.py output file
+METADATA_FILE = "metadata.json"
 RESULTS_TO_PRINT = 5 # to not print every result
 
 class Searcher:
-    def __init__(self, index_path):
+    def __init__(self, index_path, metadata_path=METADATA_FILE):
         self.index_path = index_path
-        self.term_offsets = {}
+
+        with open(metadata_path, 'rb') as f: # move the offset calculations to merge.py
+            metadata = pickle.load(f)
+            self.term_offsets = metadata['offsets']
+            self.N = metadata['N']
 
         self.ps = PorterStemmer()
-
         self.index_file = open(self.index_path, 'r', encoding='utf-8')
-        self._build_seek_index()
-
-    def _build_seek_index(self):
-        """
-        Step 1: Store the byte offset of each term
-        """
-        print("Step 1: Storing byte offsets...")
-        while True:
-            offset = self.index_file.tell()
-            line = self.index_file.readline()
-            if not line:
-                break
-
-            parts = line.split('\t', 1)
-            if len(parts) == 2:
-                self.term_offsets[parts[0]] = offset
 
     def get_postings(self, term):
-        """
-        Step 2: Retrieve postings list for a single term
-        """
         if term not in self.term_offsets:
             return []
 
@@ -42,52 +31,75 @@ class Searcher:
         _, postings_str = line.strip().split('\t', 1)
         return json.loads(postings_str)
 
-    def intersect(self, p1, p2):
+    def search(self, query: str): # M3: changed from boolean search to tfidf search with some jaccard
         """
-        Step 3: AND merge two sorted postings
-        O(N + M)
+        Step 1: Tokenize & Stem
         """
-        answer = []
-        i = 0
-        j = 0
-        while i < len (p1) and j < len(p2):
-            if p1[i][0] == p2[j][0]: # docid1 vs docid2
-                answer.append(p1[i])
-                i+=1
-                j+=1
-            elif p1[i][0] < p2[j][0]:
-                i+=1
-            else:
-                j+=1
-        return answer
+        tokens = tokenizer.tokenize(query)
+        if not tokens:
+            tokens = query.lower().split()
 
-    def search(self, query: str):
+        stemmed_query_tokens = [self.ps.stem(token) for token in tokens]
+
         """
-        Process query as series of ANDs
+        Step 2: calculate Query Vector Weights
+        (TD-IDF the query)
         """
-        terms = query.lower().split()
-        if not terms:
-            return []
+        query_freqs = {}
+        for t in stemmed_query_tokens:
+            query_freqs[t] = query_freqs.get(t,0)+1
 
-        stemmed_terms = [self.ps.stem(term) for term in terms]
+        query_weights = {}
+        cached_postings = {}
+        query_norm_sq = 0   # squared norm
 
-        all_postings = []
+        for term, freq in query_freqs.items():
+            if term not in self.term_offsets: continue
 
-        for term in stemmed_terms:
-            posting = self.get_postings(term)
-            if not posting:
-                return []
-            all_postings.append(posting)
+            postings = self.get_postings(term)
+            cached_postings[term] = postings
 
-        all_postings.sort(key=len)
+            df = len(postings)
+            idf = math.log10(self.N/df)
 
-        result = all_postings[0]
-        for next_p in all_postings[1:]:
-            result = self.intersect(result, next_p)
-            if not result:
-                break
+            term_weight = (1+ math.log10(freq)) * idf
+            query_weights[term] = term_weight
+            query_norm_sq += term_weight **2
 
-        return result
+        if not query_weights: return []
+        query_norm = math.sqrt(query_norm_sq)
+
+        """
+        Step 3: Calculate Dot Products (scores) & Tracking Term Count
+        """
+        scores = {}     # docid -> dot_product
+        term_counts = {}
+
+        for term, q_weight in query_weights.items():
+
+            for docid, doc_tf_weight, url in cached_postings[term]:
+                if docid not in scores:
+                    scores[docid] = {'score':0, 'url':url}
+                    term_counts[docid] = 0
+
+                scores[docid]['score'] += doc_tf_weight * q_weight
+                term_counts[docid] += 1
+
+        """
+        Step4. Cos Normalization & some Jaccard-ing
+        to ensure the score is relative to the query's length
+        """
+        total_query_terms = len(query_weights)
+
+        for docid in scores:
+            raw_score = scores[docid]['score']/query_norm # normalize
+
+            # jaccard boosting - if the document covers a lot of the query's terms, factor that in
+            jaccard_boost = term_counts[docid] / total_query_terms
+            scores[docid]['score'] = raw_score * jaccard_boost
+
+        sorted_docs = sorted(scores.items(), key = lambda x: x[1]['score'], reverse=True)
+        return sorted_docs[:RESULTS_TO_PRINT]
 
     def __del__(self):
         if hasattr(self, 'index_file'):
@@ -107,7 +119,7 @@ if __name__ == "__main__":
             print("No documents found.")
         else:
             print(f"Found in {len(results)} documents")
-            for doc in results[:RESULTS_TO_PRINT]:
-                print(f"DocID: {doc[0]} // Score {doc[1]} // URL: {doc[2]}")
+            for doc, data in results:
+                print(f"Score: {data['score']:.4f} // URL: {data['url']}")
 
 
