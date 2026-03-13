@@ -3,22 +3,25 @@ import math
 import os
 import pickle
 
-# from nltk.stem import PorterStemmer
 from krovetzstemmer import Stemmer
 import tokenizer
 
-INDEX_FILE = "master_index.txt" # merge.py output file
-METADATA_FILE = "metadata.json"
-RESULTS_TO_PRINT = 5 # to not print every result
+INDEX_FILE = "master_index.txt"
+METADATA_FILE = "metadata.pickle" # The "Seek Map" from merge.py
+DOC_INFO_FILE = "doc_metadata.json" # The "Display Map" with URLs/Titles
+RESULTS_TO_PRINT = 5# to not print every result
 
 class Searcher:
-    def __init__(self, index_path, metadata_path=METADATA_FILE):
+    def __init__(self, index_path, metadata_path=METADATA_FILE, doc_info_path=DOC_INFO_FILE):
         self.index_path = index_path
 
         with open(metadata_path, 'rb') as f: # move the offset calculations to merge.py
             metadata = pickle.load(f)
             self.term_offsets = metadata['offsets']
             self.N = metadata['N']
+
+        with open(doc_info_path, 'r') as f:
+            self.doc_metadata = json.load(f)
 
         self.stem = Stemmer()
         self.index_file = open(self.index_path, 'r', encoding='utf-8')
@@ -56,16 +59,13 @@ class Searcher:
 
         for term, freq in query_freqs.items():
             if term not in self.term_offsets: continue
-
             postings = self.get_postings(term)
             cached_postings[term] = postings
-
             df = len(postings)
             idf = math.log10(self.N/df)
-
-            term_weight = (1+ math.log10(freq)) * idf
+            term_weight = (1 + math.log10(freq)) * idf
             query_weights[term] = term_weight
-            query_norm_sq += term_weight **2
+            query_norm_sq += term_weight ** 2
 
         if not query_weights: return []
         query_norm = math.sqrt(query_norm_sq)
@@ -78,28 +78,32 @@ class Searcher:
 
         for term, q_weight in query_weights.items():
 
-            for docid, doc_tf_weight, url in cached_postings[term]:
-                if docid not in scores:
-                    scores[docid] = {'score':0, 'url':url}
-                    term_counts[docid] = 0
+            for docid, doc_tf_weight in cached_postings[term]:
+                str_docid = str(docid)  # JSON keys are always strings
+                if str_docid not in scores:
+                    # Pull URL and Title from metadata here
+                    meta = self.doc_metadata.get(str_docid, {"url": "Unknown", "title": "No Title"})
+                    scores[str_docid] = {
+                        'score': 0,
+                        'url': meta['url'],
+                        'title': meta['title']
+                    }
+                    term_counts[str_docid] = 0
 
-                scores[docid]['score'] += doc_tf_weight * q_weight
-                term_counts[docid] += 1
+                scores[str_docid]['score'] += doc_tf_weight * q_weight
+                term_counts[str_docid] += 1
 
         """
         Step4. Cos Normalization & some Jaccard-ing
         to ensure the score is relative to the query's length
         """
         total_query_terms = len(query_weights)
-
         for docid in scores:
-            raw_score = scores[docid]['score']/query_norm # normalize
-
-            # jaccard boosting - if the document covers a lot of the query's terms, factor that in
+            raw_score = scores[docid]['score'] / query_norm
             jaccard_boost = term_counts[docid] / total_query_terms
             scores[docid]['score'] = raw_score * jaccard_boost
 
-        sorted_docs = sorted(scores.items(), key = lambda x: x[1]['score'], reverse=True)
+        sorted_docs = sorted(scores.items(), key=lambda x: x[1]['score'], reverse=True)
         return sorted_docs[:RESULTS_TO_PRINT]
 
     def __del__(self):

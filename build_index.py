@@ -42,12 +42,15 @@ def get_visible_text(html: str):
     except Exception:
         soup = BeautifulSoup(html, 'html.parser')
 
+    title_tag = soup.find("title")
+    title = title_tag.get_text(strip=True) if title_tag else "No Title"
+
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
     text = soup.get_text(" ")
     soup.decompose()
-    return " ".join(text.split()).lower()
+    return title, " ".join(text.split()).lower()
 
 def is_duplicate_page(text: str):
     hash_val = hashlib.md5(text.encode()).hexdigest()
@@ -131,6 +134,7 @@ def write_to_file(Index: dict, file_num: int):
 
 def build_index(documents: list[str]):
     Index = {}
+    doc_meta = {}
     n = 0
     file_num = 1
     stemmer = Stemmer()
@@ -146,10 +150,12 @@ def build_index(documents: list[str]):
                 if not html:
                     continue
 
-                text = get_visible_text(html)
+                title, text = get_visible_text(html)
+                url = doc_content.get("url", "")
+                doc_meta[n] = {'url': url, 'title': title}
                 if is_duplicate_page(text) or near_duplicate(text):
                     continue
-                url = doc_content.get("url", "")
+
                 tokens = tokenizer.tokenize(text)
                 stemmed_tokens = [stemmer.stem(token) for token in tokens]
                 frequency = tokenizer.compute_word_frequencies(stemmed_tokens)
@@ -159,7 +165,7 @@ def build_index(documents: list[str]):
                     if token_lower not in Index:
                         Index[token_lower] = []
                     log_tf = 1 + math.log10(freq)
-                    Index[token_lower].append(Posting(n, log_tf, url))
+                    Index[token_lower].append(Posting(n, log_tf))
 
                 del html
                 del url
@@ -178,6 +184,8 @@ def build_index(documents: list[str]):
             Index.clear()
 
         gc.collect()
+    with open("doc_metadata.json", "w") as f:
+        json.dump(doc_meta, f)
 
 
 def write_report(filename="indexer_report.txt"):
