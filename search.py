@@ -3,7 +3,8 @@ import math
 import os
 import pickle
 
-from nltk.stem import PorterStemmer
+# from nltk.stem import PorterStemmer
+from krovetzstemmer import Stemmer
 import tokenizer
 
 INDEX_FILE = "master_index.txt" # merge.py output file
@@ -19,7 +20,7 @@ class Searcher:
             self.term_offsets = metadata['offsets']
             self.N = metadata['N']
 
-        self.ps = PorterStemmer()
+        self.stem = Stemmer()
         self.index_file = open(self.index_path, 'r', encoding='utf-8')
 
     def get_postings(self, term):
@@ -39,7 +40,7 @@ class Searcher:
         if not tokens:
             tokens = query.lower().split()
 
-        stemmed_query_tokens = [self.ps.stem(token) for token in tokens]
+        stemmed_query_tokens = [self.stem.stem(token) for token in tokens]
 
         """
         Step 2: calculate Query Vector Weights
