@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import search as se
 
-INDEX_FILE = "master_index.txt" # merge.py output file
+INDEX_FILE = "master_index_without_titles.txt"  # merge.py output file
 METADATA_FILE = "metadata.json"
 
 
@@ -33,9 +33,8 @@ class SearchEngine(tk.Tk):
         self.result_label = ttk.Label(self, text="")
         self.label_pack = False
 
-        self.columns = ("Title", "docID", "Score", "URL")
+        self.columns = ("docID", "Score", "URL")
         self.results_view = ttk.Treeview(self, columns=self.columns, show='headings')
-        self.results_view.heading("Title", text="Title")
         self.results_view.heading("docID", text="docID")
         self.results_view.heading("Score", text="Score")
         self.results_view.heading("URL", text="URL")

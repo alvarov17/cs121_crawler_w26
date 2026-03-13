@@ -14,7 +14,7 @@ import warnings
 import re
 import pickle
 import gc
-from nltk.stem import PorterStemmer
+from krovetzstemmer import Stemmer
 
 MAX_INDEX = 50000
 
@@ -48,7 +48,6 @@ def get_visible_text(html: str):
     text = soup.get_text(" ")
     soup.decompose()
     return " ".join(text.split()).lower()
-
 
 def is_duplicate_page(text: str):
     hash_val = hashlib.md5(text.encode()).hexdigest()
@@ -134,7 +133,7 @@ def build_index(documents: list[str]):
     Index = {}
     n = 0
     file_num = 1
-    stemmer = PorterStemmer()
+    stemmer = Stemmer()
     for chunk in chunk_generator(documents, 1000):
         for doc in chunk:
             try:
@@ -154,7 +153,6 @@ def build_index(documents: list[str]):
                 tokens = tokenizer.tokenize(text)
                 stemmed_tokens = [stemmer.stem(token) for token in tokens]
                 frequency = tokenizer.compute_word_frequencies(stemmed_tokens)
-
                 for token_lower, freq in frequency.items():
                     if len(token_lower) > 200:
                         continue
@@ -187,7 +185,7 @@ def write_report(filename="indexer_report.txt"):
         f.write(f"Indexed documents: {len(seen_hashes)}\n\n")
         # f.write(f"Number of unique tokens: \n{len(unique_tokens)}\n\n")
         f.write("Total size of index in KB:\n")
-        total_size = os.path.getsize("master_index.txt") / 1024
+        total_size = os.path.getsize("master_index_without_titles.txt") / 1024
         for name, size in file_names_sizes.items():
             f.write(f"{name}: {(size):.2f} KB\n")
             total_size += size
