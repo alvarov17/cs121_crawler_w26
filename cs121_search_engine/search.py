@@ -6,13 +6,17 @@ import pickle
 from krovetzstemmer import Stemmer
 import tokenizer
 
-INDEX_FILE = "master_index.txt"
-METADATA_FILE = "metadata.pickle" # The "Seek Map" from merge.py
-DOC_INFO_FILE = "doc_metadata.json" # The "Display Map" with URLs/Titles
+INDEX_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/master_index.txt"
+METADATA_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/metadata.json" # The "Seek Map" from merge.py
+DOC_INFO_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/doc_metadata.json"  # The "Display Map" with URLs/Titles
+PAGERANK_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/pagerank.json"
 RESULTS_TO_PRINT = 5# to not print every result
 
+PAGERANK_WEIGHT = 0.3  #weight of pagerank's contribution to final score
+
 class Searcher:
-    def __init__(self, index_path, metadata_path=METADATA_FILE, doc_info_path=DOC_INFO_FILE):
+    def __init__(self, index_path, metadata_path=METADATA_FILE, doc_info_path=DOC_INFO_FILE,
+                 pagerank_path=PAGERANK_FILE):
         self.index_path = index_path
 
         with open(metadata_path, 'rb') as f: # move the offset calculations to merge.py
@@ -22,6 +26,12 @@ class Searcher:
 
         with open(doc_info_path, 'r') as f:
             self.doc_metadata = json.load(f)
+
+        # PageRank scoring
+        self.pagerank = {}
+        if os.path.exists(pagerank_path):
+            with open(pagerank_path, 'r') as f:
+                self.pagerank = json.load(f)
 
         self.stem = Stemmer()
         self.index_file = open(self.index_path, 'r', encoding='utf-8')
@@ -101,7 +111,11 @@ class Searcher:
         for docid in scores:
             raw_score = scores[docid]['score'] / query_norm
             jaccard_boost = term_counts[docid] / total_query_terms
-            scores[docid]['score'] = raw_score * jaccard_boost
+            tfidf_score = raw_score * jaccard_boost
+
+            # Blend with PageRank if available
+            pr_score = self.pagerank.get(docid, 0.0)
+            scores[docid]['score'] = (1.0 - PAGERANK_WEIGHT) * tfidf_score + PAGERANK_WEIGHT * pr_score
 
         sorted_docs = sorted(scores.items(), key=lambda x: x[1]['score'], reverse=True)
         return sorted_docs[:RESULTS_TO_PRINT]
