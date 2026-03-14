@@ -46,17 +46,17 @@ def extract_outgoing_links(html: str, base_url: str) -> list[str]:
     links = []
     for tag in soup.find_all("a", href=True):
         href = tag.get("href", "").strip()
-        # Skip empty links or non-http links
+        # skip empty links or non-http links
         if not href or href.startswith(("mailto:", "javascript:", "#")):
             continue
 
         try:
-            # PROTECT THIS LINE:
+            # try to get outgoing links
             abs_url = urljoin(base_url, href)
             abs_url, _ = urldefrag(abs_url)
             links.append(abs_url)
         except ValueError:
-            # If we hit a [YOUR_IP] or other malformed URL, just skip it
+            # skips broken url link
             continue
 
     soup.decompose()
@@ -70,11 +70,11 @@ def extract_and_weight_content(html: str):
     except Exception:
         soup = BeautifulSoup(html, 'html.parser')
 
-    # --- 1. Get Title for Metadata (GUI) ---
+    # grabs title used in meta data
     title_tag = soup.find("title")
     display_title = title_tag.get_text(strip=True) if title_tag else "No Title"
 
-    # --- 2. Calculate Importance Weights ---
+    # weights for important tags
     tag_weights = {'title': 10, 'h1': 5, 'h2': 3, 'h3': 2, 'b': 2, 'strong': 2}
     weighted_freqs = {}
 
@@ -83,9 +83,9 @@ def extract_and_weight_content(html: str):
             tag_text = tag.get_text().lower()
             tokens = tokenizer.tokenize(tag_text)
             for t in tokens:
-                weighted_freqs[t] = weighted_freqs.get(t, 0) + weight
+                weighted_freqs[t] = weighted_freqs.get(t, 0) + weight # assigns weight to term
 
-    # --- 3. Get All Visible Text (Weight 1) ---
+    # gets all visible text, weight is just 1
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
@@ -102,7 +102,7 @@ def extract_and_weight_content(html: str):
 # ── Duplicate Detection ─────────────────────────────────────────────────────
 def is_duplicate_page(text: str):
     hash_val = hashlib.md5(text.encode()).hexdigest()
-    if hash_val in seen_hashes:
+    if hash_val in seen_hashes: # if hashed text is in the seen_hashes set
         return True
     seen_hashes.add(hash_val)
     return False
@@ -158,16 +158,15 @@ def write_to_file(Index: dict, file_num: int):
         os.makedirs(folder_name)
     with open(full_path, 'wb') as f:
         pickle.dump(Index, f, protocol=pickle.HIGHEST_PROTOCOL)
-    file_names_sizes[file_name] = os.path.getsize(full_path) / 1024
 
 
 def build_index(documents: list[str]):
     Index = {}
-    doc_meta = {}
-    link_graph = {}  # <-- Restored for PageRank
-    n = 0
+    doc_meta = {} # doc meta data dict
+    link_graph = {}  # for page rank
+    n = 0 # doc id counter
     file_num = 1
-    stemmer = Stemmer()
+    stemmer = Stemmer() # krovetz stemmer
 
     for chunk in chunk_generator(documents, 1000):
         for doc in chunk:
@@ -209,7 +208,7 @@ def build_index(documents: list[str]):
                         Index[stemmed_token] = []
                     Index[stemmed_token].append(Posting(n, log_tf))
 
-                # Clean up memory
+                # clean up memory
                 del html
                 del url
                 del token_string
@@ -219,7 +218,7 @@ def build_index(documents: list[str]):
             except Exception as e:
                 import traceback
                 print(f"Skipping file {doc} due to error: {e}")
-                traceback.print_exc()  # This will show you the "Path of Death" for the error
+                traceback.print_exc() # in case any errors occur, can see which line
 
         if Index:
             write_to_file(Index, file_num)
@@ -228,18 +227,19 @@ def build_index(documents: list[str]):
 
         gc.collect()
 
-    # Save the output files
-    with open("doc_metadata.json", "w") as f:
+    with open("doc_metadata.json", "w") as f: # Save the doc meta data file
         json.dump(doc_meta, f)
 
-    with open("link_graph.json", "w") as f:  # <-- Save the Link Graph
+    with open("link_graph.json", "w") as f:  # Save the Link Graph
         json.dump(link_graph, f)
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
     warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
     print("Collecting Paths...")
-    paths = collect_paths("/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/DEV")
+    paths = collect_paths(
+        "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/DEV"
+    )
     print("Building Partial Indexes...")
     build_index(paths)
     convert_pickles_to_sorted_text()

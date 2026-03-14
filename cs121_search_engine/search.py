@@ -6,13 +6,13 @@ import pickle
 from krovetzstemmer import Stemmer
 import tokenizer
 
-INDEX_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/master_index.txt"
-METADATA_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/metadata.json" # The "Seek Map" from merge.py
-DOC_INFO_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/doc_metadata.json"  # The "Display Map" with URLs/Titles
-PAGERANK_FILE = "/Users/curly.mp4/Desktop/cs121 assignments/cs121_crawler_w26/cs121_search_engine/pagerank.json"
-RESULTS_TO_PRINT = 5# to not print every result
+INDEX_FILE = "master_index.txt"
+METADATA_FILE = "metadata.json" # The "Seek Map" from merge.py
+DOC_INFO_FILE = "doc_metadata.json"  # The "Display Map" with URLs/Titles
+PAGERANK_FILE = "pagerank.json"
+RESULTS_TO_PRINT = 5 # to not print every result
 
-PAGERANK_WEIGHT = 0.3  #weight of pagerank's contribution to final score
+PAGERANK_WEIGHT = 0.3  # weight of pagerank's contribution to final score
 
 class Searcher:
     def __init__(self, index_path, metadata_path=METADATA_FILE, doc_info_path=DOC_INFO_FILE,
@@ -113,9 +113,10 @@ class Searcher:
             jaccard_boost = term_counts[docid] / total_query_terms
             tfidf_score = raw_score * jaccard_boost
 
-            # Blend with PageRank if available
+            # Blend with page rank
             pr_score = self.pagerank.get(docid, 0.0)
-            scores[docid]['score'] = (1.0 - PAGERANK_WEIGHT) * tfidf_score + PAGERANK_WEIGHT * pr_score
+            scores[docid]['score'] = ((1.0 - PAGERANK_WEIGHT) * tfidf_score
+                                      + PAGERANK_WEIGHT * pr_score)
 
         sorted_docs = sorted(scores.items(), key=lambda x: x[1]['score'], reverse=True)
         return sorted_docs[:RESULTS_TO_PRINT]
@@ -124,7 +125,7 @@ class Searcher:
         if hasattr(self, 'index_file'):
             self.index_file.close()
 
-if __name__ == "__main__":
+if __name__ == "__main__": # if running script directly, run GUI directly as an alternative
     searcher = Searcher(INDEX_FILE)
 
     while True:

@@ -13,14 +13,14 @@ def show_error():
 
 class SearchEngine(tk.Tk):
     def __init__(self):
-        # Initialize the parent class (tk.Tk)
         super().__init__()
 
-        # Configure the main window
+        # main window
         self.se = se.Searcher(INDEX_FILE)
         self.title("CS 121 Search Engine")
-        self.geometry("1200x500")  # Set the window size
+        self.geometry("1200x500")  # set the window size
 
+        # Label Title
         self.window_label = ttk.Label(self, text="CS 121 Search Engine")
         self.window_label.config(font=("Helvetica", 24, "bold"))
         self.window_label.pack(pady=20)
@@ -66,34 +66,34 @@ class SearchEngine(tk.Tk):
         return self.se.search(query)
 
     def present_results(self, query):
-        # 1. Always clear the view first to prevent doubling
+        # clear window to prevent double widgets
 
-        start_time = time.perf_counter()
+        start_time = time.perf_counter() # start processing timeer
         results = self.get_results(query)
-        end_time = time.perf_counter()  # End the timer
-        last_response_time = (end_time - start_time) * 1000
+        end_time = time.perf_counter()  # end processing timer
+        last_response_time = (end_time - start_time) * 1000 # converts to ms
 
-        for item in self.results_view.get_children():
+        for item in self.results_view.get_children(): # clears results widget
             self.results_view.delete(item)
 
         if results:
             self.result_label.config(text=f"Here are the top 5 results for: {query}")
             self.response_time.config(text=f"Response Time: {last_response_time:.2f} ms")
 
-            # 2. Slice the list to get the first 5 tuples
-            # result is (doc_id, {'score': ..., 'url': ...})
+            # get first 5 tuples
+            # result structure is (doc_id, {'score': ..., 'url': ...})
             for doc_id, data in results[:5]:
                 self.results_view.insert("", "end", values=(
-                    data.get('title'),  # Your title column
-                    doc_id,  # The integer
-                    f"{data.get('score'):.2f}",  # The score from the dict
-                    data.get('url')  # The url from the dict
+                    data.get('title'),  # title column
+                    doc_id,  # doc id column
+                    f"{data.get('score'):.2f}",  # score column
+                    data.get('url')  # url column
                 ))
         else:
             self.result_label.config(text=f"No results found for: {query}")
             self.response_time.config(text=f"Response Time: {last_response_time:.2f} ms")
 
-        # 3. Ensure everything is packed and visible
+        # making sure everything appears in the window
         if not self.label_pack:
             self.result_label.pack()
             self.results_view.pack()
@@ -101,6 +101,5 @@ class SearchEngine(tk.Tk):
             self.label_pack = True
 
 if __name__ == "__main__":
-    # Instantiate the class and run the application main event loop
     app = SearchEngine()
     app.mainloop()
